@@ -28,7 +28,7 @@ jobs:
 
       - name: Create release version
         id: release
-        uses: sourav-todaypay/workflows/semantic-release@main
+        uses: kranthisai-1/workflows/semantic-release@main
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
@@ -36,11 +36,11 @@ jobs:
           role-to-assume: arn:aws:iam::270290807521:role/GitHubActionsAmplifyDeployRole1
           aws-region: us-east-1
 
-      - name: Build Next.js app (standalone)
+      - name: Build Next.js app
         run: |
           npm run build
           mkdir -p .output-zip
-          cp -r .next/standalone .output-zip/
+          cp -r .next .output-zip/
           cp -r public .output-zip/
           cp -r .next/static .output-zip/
           cp package.json .output-zip/

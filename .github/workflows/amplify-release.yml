@@ -41,14 +41,14 @@ jobs:
           npm run build
 
           mkdir -p dist/.next
-          cp -r .next/standalone/* dist/
-
-          # only copy static if it exists
+          cp -r .next/standalone dist/standalone
+          mv dist/standalone/* dist/
+          rm -rf dist/standalone
           if [ -d ".next/static" ]; then
             cp -r .next/static dist/.next/
           fi
 
-          # copy public if exists
+   
           if [ -d "public" ]; then
             cp -r public dist/
           fi

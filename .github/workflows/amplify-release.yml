@@ -50,16 +50,22 @@ jobs:
         run: |
           aws s3 cp app.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
           aws s3 ls s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
-          
-      - name: Trigger Amplify deployment (staging)
-        id: amplify_trigger
+
+      - name: Generate presigned URL
+        id: presign
         run: |
-          DEPLOY_URL="https://nextjs-admin-builds.s3.amazonaws.com/releases/v${{ steps.release.outputs.version }}.zip"
-          echo "Deploy URL: $DEPLOY_URL"
+          # Generate a presigned URL for the uploaded file with a 1-hour expiration
+          URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
+          echo "Presigned URL: $URL"
+          echo "URL=$URL" >> $GITHUB_ENV
+
+      - name: Trigger Amplify deployment (staging)
+        run: |
+          echo "Using presigned URL: ${{ env.URL }}"
           aws amplify start-deployment \
             --app-id ddwpoj2b9jk65 \
             --branch-name staging \
-            --source-url $DEPLOY_URL
+            --source-url ${{ env.URL }}
 
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

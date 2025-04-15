@@ -28,7 +28,7 @@ jobs:
 
       - name: Create release version
         id: release
-        uses: kranthisai-1/workflows/semantic-release@main
+        uses: sourav-todaypay/workflows/semantic-release@main
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
@@ -36,11 +36,11 @@ jobs:
           role-to-assume: arn:aws:iam::270290807521:role/GitHubActionsAmplifyDeployRole1
           aws-region: us-east-1
 
-      - name: Build Next.js app
+      - name: Build Next.js app (standalone)
         run: |
           npm run build
           mkdir -p .output-zip
-          cp -r .next .output-zip/
+          cp -r .next/standalone .output-zip/
           cp -r public .output-zip/
           cp -r .next/static .output-zip/
           cp package.json .output-zip/
@@ -50,23 +50,13 @@ jobs:
         run: |
           aws s3 cp app.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
           aws s3 ls s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
-
-      - name: Generate presigned URL
-        id: presign
-        run: |
-          # Generate a presigned URL for the uploaded file with a 1-hour expiration
-          URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
-          echo "Presigned URL: $URL"
-          echo "URL=$URL" >> $GITHUB_ENV
-
+          
       - name: Trigger Amplify deployment (staging)
         run: |
-          # Use the presigned URL correctly in the Amplify deployment trigger
-          echo "Using presigned URL: ${{ env.URL }}"
           aws amplify start-deployment \
             --app-id ddwpoj2b9jk65 \
             --branch-name staging \
-            --source-url "${{ env.URL }}"
+            --source-url https://nextjs-admin-builds.s3.amazonaws.com/releases/v${{ steps.release.outputs.version }}.zip
 
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

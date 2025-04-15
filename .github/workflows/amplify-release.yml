@@ -39,16 +39,27 @@ jobs:
       - name: Build Next.js app (standalone)
         run: |
           npm run build
-          mkdir dist
+
+          mkdir -p dist/.next
           cp -r .next/standalone/* dist/
-          cp -r public dist/public
+
+          # only copy static if it exists
+          if [ -d ".next/static" ]; then
+            cp -r .next/static dist/.next/
+          fi
+
+          # copy public if exists
+          if [ -d "public" ]; then
+            cp -r public dist/
+          fi
+
           cp package.json dist/
           cd dist && zip -r ../build.zip . && cd ..
 
 
       - name: Upload build to S3
         run: |
-          aws s3 cp app.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
+          aws s3 cp build.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
           aws s3 ls s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
 
       - name: Generate pre-signed URL for S3

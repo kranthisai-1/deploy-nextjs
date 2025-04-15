@@ -39,9 +39,13 @@ jobs:
       - name: Build Next.js app (standalone)
         run: |
           npm run build
-          mkdir -p .output-zip
-          cp -r .next public package.json .output-zip/
-          cd .output-zip && zip -r ../app.zip . && cd ..
+          mkdir dist
+          cp -r .next/standalone/* dist/
+          cp -r .next/static dist/.next/static
+          cp -r public dist/public
+          cp package.json dist/
+          cd dist && zip -r ../build.zip . && cd ..
+
 
       - name: Upload build to S3
         run: |

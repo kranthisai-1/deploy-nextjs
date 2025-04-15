@@ -28,7 +28,7 @@ jobs:
 
       - name: Create release version
         id: release
-        uses: sourav-todaypay/workflows/semantic-release@main
+        uses: kranthisai-1/workflows/semantic-release@main
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
@@ -40,24 +40,28 @@ jobs:
         run: |
           npm run build
           mkdir -p .output-zip
-          cp -r .next/standalone .output-zip/
-          cp -r public .output-zip/
-          cp -r .next/static .output-zip/
-          cp package.json .output-zip/
+          cp -r .next public package.json .output-zip/
           cd .output-zip && zip -r ../app.zip . && cd ..
 
       - name: Upload build to S3
         run: |
           aws s3 cp app.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
           aws s3 ls s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
-          
+
+      - name: Generate pre-signed URL for S3
+        id: presign_url
+        run: |
+          URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Trigger Amplify deployment (staging)
         run: |
+          echo "Using presigned URL: '${{ steps.presign_url.outputs.url }}'"
           aws amplify start-deployment \
-            --app-id ddwpoj2b9jk65 \
-            --branch-name staging \
-            --source-url https://nextjs-admin-builds.s3.amazonaws.com/releases/v${{ steps.release.outputs.version }}.zip
-
+           --app-id ddwpoj2b9jk65 \
+           --branch-name staging \
+           --source-url "${{ steps.presign_url.outputs.url }}"
+           
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}
         uses: kranthisai-1/workflows/slack-alert@main

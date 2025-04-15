@@ -41,7 +41,6 @@ jobs:
           npm run build
           mkdir dist
           cp -r .next/standalone/* dist/
-          cp -r .next/static dist/.next/static
           cp -r public dist/public
           cp package.json dist/
           cd dist && zip -r ../build.zip . && cd ..

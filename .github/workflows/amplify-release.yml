@@ -61,11 +61,12 @@ jobs:
 
       - name: Trigger Amplify deployment (staging)
         run: |
+          # Use the presigned URL correctly in the Amplify deployment trigger
           echo "Using presigned URL: ${{ env.URL }}"
           aws amplify start-deployment \
             --app-id ddwpoj2b9jk65 \
             --branch-name staging \
-            --source-url ${{ env.URL }}
+            --source-url "${{ env.URL }}"
 
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

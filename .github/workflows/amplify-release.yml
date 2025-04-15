@@ -40,12 +40,9 @@ jobs:
         run: |
           npm run build
           mkdir -p .output-zip
-          cp -r .next .output-zip/
-          cp -r public .output-zip/
-          cp -r .next/static .output-zip/
-          cp package.json .output-zip/
+          cp -r .next public package.json .output-zip/
           cd .output-zip && zip -r ../app.zip . && cd ..
-          
+
       - name: Upload build to S3
         run: |
           aws s3 cp app.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
@@ -54,17 +51,18 @@ jobs:
       - name: Generate pre-signed URL for S3
         id: presign_url
         run: |
-          export URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
-          echo "::set-output name=url::${URL}"
+          URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
 
       - name: Trigger Amplify deployment (staging)
         run: |
-          echo "Using presigned URL: ${{ steps.presign_url.outputs.url }}"
+          echo "Using presigned URL: '${{ steps.presign_url.outputs.url }}'"
           aws amplify start-deployment \
-            --app-id ddwpoj2b9jk65 \
-            --branch-name staging \
-            --source-url ${{ steps.presign_url.outputs.url }}
-
+           --app-id ddwpoj2b9jk65 \
+           --branch-name staging \
+           --source-url "${{ steps.presign_url.outputs.url }}"
+           
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}
         uses: kranthisai-1/workflows/slack-alert@main

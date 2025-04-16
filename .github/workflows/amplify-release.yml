@@ -30,8 +30,8 @@ jobs:
       #   id: release
       #   uses: kranthisai-1/workflows/semantic-release@main
 
-      - name: Build the app
-        run: npm run build
+      - name: Run Vercel build
+        run: npx vercel build
 
       - name: Load .env.staging and deploy to Vercel (Staging)
         run: |
@@ -43,7 +43,6 @@ jobs:
           # Deploy to Vercel with the loaded env variables
           npx vercel deploy \
             --prebuilt \
-            --cwd ./.next/standalone \
             --token ${{ secrets.VERCEL_TOKEN }} \
             --prod \
             --yes \

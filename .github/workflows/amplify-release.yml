@@ -1,3 +1,14 @@
+name: Create Release and Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   deploy:
     steps:

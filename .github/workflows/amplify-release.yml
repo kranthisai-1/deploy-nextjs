@@ -30,65 +30,22 @@ jobs:
         id: release
         uses: kranthisai-1/workflows/semantic-release@main
 
-      # - name: Configure AWS credentials (OIDC)
-      #   uses: aws-actions/configure-aws-credentials@v2
-      #   with:
-      #     role-to-assume: arn:aws:iam::270290807521:role/GitHubActionsAmplifyDeployRole1
-      #     aws-region: us-east-1
-
-      # - name: Build Next.js app (standalone)
-      #   run: |
-      #     npm run build
-
-      #     mkdir -p dist/.next
-      #     cp -r .next/standalone dist/standalone
-      #     mv dist/standalone/* dist/
-      #     rm -rf dist/standalone
-      #     if [ -d ".next/static" ]; then
-      #       cp -r .next/static dist/.next/
-      #     fi
-
-      #     if [ -d "public" ]; then
-      #       cp -r public dist/
-      #     fi
-
-      #     cp package.json dist/
-      #     cd dist && zip -r ../build.zip . && cd ..
-
-
-      # - name: Upload build to S3
-      #   run: |
-      #     aws s3 cp build.zip s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
-      #     aws s3 ls s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip
-
-      # - name: Generate pre-signed URL for S3
-      #   id: presign_url
-      #   run: |
-      #     URL=$(aws s3 presign s3://nextjs-admin-builds/releases/v${{ steps.release.outputs.version }}.zip --expires-in 3600)
-      #     echo "url=$URL" >> "$GITHUB_OUTPUT"
-
-      # - name: Trigger Amplify deployment (staging)
-      #   run: |
-      #     echo "Using presigned URL: '${{ steps.presign_url.outputs.url }}'"
-      #     aws amplify start-deployment \
-      #      --app-id ddwpoj2b9jk65 \
-      #      --branch-name staging \
-      #      --source-url "${{ steps.presign_url.outputs.url }}"
-
-      - name: Build
-        run: npm run build
-
-      - name: Deploy to Vercel (Staging)
+      - name: Load .env.staging and deploy to Vercel (Staging)
         run: |
+          # Load environment variables from .env.staging
+          set -o allexport
+          source .env.staging
+          set +o allexport
+
+          # Deploy to Vercel with the loaded env variables
           npx vercel deploy \
-          --prebuilt \
-          --cwd .next/standalone \
-          --token ${{ secrets.VERCEL_TOKEN }} \
-          --env-file .env.staging \
-          --prod \
-          --yes \
-          --name deploy-nextjs
-           
+            --prebuilt \
+            --cwd .next/standalone \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --prod \
+            --yes \
+            --name deploy-nextjs
+          
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}
         uses: kranthisai-1/workflows/slack-alert@main

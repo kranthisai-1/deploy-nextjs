@@ -40,7 +40,7 @@ jobs:
           # Deploy to Vercel with the loaded env variables
           npx vercel deploy \
             --prebuilt \
-            --cwd .next/standalone \
+            --cwd ./.next/standalone \
             --token ${{ secrets.VERCEL_TOKEN }} \
             --prod \
             --yes \

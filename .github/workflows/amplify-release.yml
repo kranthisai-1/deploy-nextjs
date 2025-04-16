@@ -30,6 +30,9 @@ jobs:
       #   id: release
       #   uses: kranthisai-1/workflows/semantic-release@main
 
+      - name: Build the app
+        run: npm run build
+
       - name: Load .env.staging and deploy to Vercel (Staging)
         run: |
           # Load environment variables from .env.staging

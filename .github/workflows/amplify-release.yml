@@ -34,7 +34,7 @@ jobs:
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Run Vercel build
-        run: npx vercel build
+        run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Load .env.staging and deploy to Vercel (Staging)
         run: |
@@ -49,7 +49,6 @@ jobs:
             --token ${{ secrets.VERCEL_TOKEN }} \
             --prod \
             --yes \
-            --name deploy-nextjs
           
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

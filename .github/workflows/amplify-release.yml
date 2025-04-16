@@ -8,7 +8,6 @@ on:
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
-    environment: preview
 
     steps:
       - uses: actions/checkout@v4

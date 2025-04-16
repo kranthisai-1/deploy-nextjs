@@ -1,5 +1,14 @@
 name: Create Release and Deploy to Preview
 
+on:
+  push:
+    branches:
+      - main  # or use a different branch if preview builds are triggered elsewhere
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   release_and_deploy:
     runs-on: ubuntu-latest
@@ -23,6 +32,7 @@ jobs:
 
       - name: Sync .env.preview
         run: |
+          # Add/update preview environment variables
           npx vercel env add .env.preview --prebuilt --yes --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Build and deploy

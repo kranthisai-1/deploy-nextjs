@@ -27,10 +27,12 @@ jobs:
         run: npm ci
 
       - name: Link Vercel project
-        run: npx vercel link --token ${{ secrets.VERCEL_TOKEN }} --yes \
-          --project ${{ secrets.VERCEL_PROJECT_ID }} \
-          --scope ${{ secrets.VERCEL_ORG_ID }}
-
+        run: |
+          npx vercel link \
+           --token ${{ secrets.VERCEL_TOKEN }} \
+           --yes \
+           --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
+           --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
 
       - name: Pull Preview Environment Variables
         run: |

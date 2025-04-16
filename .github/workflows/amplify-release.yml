@@ -1,59 +1,29 @@
-name: Create Release and Deploy to Staging
-
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  id-token: write
-  contents: write
-
 jobs:
-  release_and_deploy:
-    runs-on: ubuntu-latest
-    environment: staging
-
+  deploy:
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install dependencies
-        run: npm ci
-
-      # - name: Create release version
-      #   id: release
-      #   uses: kranthisai-1/workflows/semantic-release@main
-
-      - name: Run Vercel build
-        run: npx vercel build
-
-      - name: Load .env.staging and deploy to Vercel (Staging)
+      - name: Load .env.staging
         run: |
-          # Load environment variables from .env.staging
           set -o allexport
           source .env.staging
           set +o allexport
 
-          # Deploy to Vercel with the loaded env variables
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build with Vercel
+        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        run: |
           npx vercel deploy \
             --prebuilt \
             --token ${{ secrets.VERCEL_TOKEN }} \
             --prod \
-            --yes \
-            --name deploy-nextjs
-          
-      - name: Send Slack success notification
-        if: ${{ success() && steps.release.outputs.version != '' }}
-        uses: kranthisai-1/workflows/slack-alert@main
-        with:
-          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "✅ Staging Deployment Complete"
-          message: "Version `v${{ steps.release.outputs.version }}` was deployed to *staging*."
-          message_type: "success"
+            --yes

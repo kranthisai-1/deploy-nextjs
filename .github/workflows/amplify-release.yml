@@ -38,10 +38,12 @@ jobs:
         run: |
           npx vercel env pull .env.preview --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Sync .env.preview
+      - name: Pull Preview Environment Variables
         run: |
-          # Add/update preview environment variables
-          npx vercel env add .env.preview --prebuilt --yes --token ${{ secrets.VERCEL_TOKEN }}
+          npx vercel env pull .env.preview \
+           --environment=preview \
+           --token ${{ secrets.VERCEL_TOKEN }} \
+           --yes 
 
       - name: Build and deploy
         run: |

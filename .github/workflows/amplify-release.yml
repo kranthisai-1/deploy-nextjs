@@ -49,6 +49,7 @@ jobs:
             --token ${{ secrets.VERCEL_TOKEN }} \
             --prod \
             --yes \
+            --force
           
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

@@ -2,7 +2,8 @@ name: Preview Deployment
 
 on:
   push:
-    branches: [main]
+    branches:
+      -main
 
 jobs:
   deploy-preview:

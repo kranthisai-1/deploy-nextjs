@@ -1,14 +1,5 @@
 name: Create Release and Deploy to Preview
 
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  id-token: write
-  contents: write
-
 jobs:
   release_and_deploy:
     runs-on: ubuntu-latest
@@ -26,34 +17,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Pull Vercel environment variables
+      - name: Pull environment variables
         run: |
-          npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+          npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Sync .env.preview to Vercel
+      - name: Sync .env.preview
         run: |
-          # Push preview environment variables to Vercel
-          npx vercel env add .env.preview --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+          # Add/update preview environment variables
+          npx vercel env add .env.preview --prebuilt --yes --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build project
-        run: |
-          npx vercel build --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to Preview
+      - name: Build and deploy
         run: |
           npx vercel deploy \
             --prebuilt \
-            --environment=preview \
             --token ${{ secrets.VERCEL_TOKEN }} \
             --yes \
-            --force
-
-      - name: Slack success notification
-        if: success()
-        uses: kranthisai-1/workflows/slack-alert@main
-        with:
-          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "✅ Preview Deployment Complete"
-          message: "A new preview version was deployed."
-          message_type: "success"
+            --force \
+            --env VERCEL_ENV=preview

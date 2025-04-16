@@ -26,9 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create release version
-        id: release
-        uses: kranthisai-1/workflows/semantic-release@main
+      # - name: Create release version
+      #   id: release
+      #   uses: kranthisai-1/workflows/semantic-release@main
 
       - name: Load .env.staging and deploy to Vercel (Staging)
         run: |

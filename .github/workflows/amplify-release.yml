@@ -23,7 +23,6 @@ jobs:
 
       - name: Sync .env.preview
         run: |
-          # Add/update preview environment variables
           npx vercel env add .env.preview --prebuilt --yes --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Build and deploy

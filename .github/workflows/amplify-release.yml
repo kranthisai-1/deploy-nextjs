@@ -12,13 +12,13 @@ permissions:
 jobs:
   release_and_deploy:
     runs-on: ubuntu-latest
-    environment: preview  # This refers to the preview environment in Vercel
+    environment: preview
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -26,31 +26,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # - name: Create release version
-      #   id: release
-      #   uses: kranthisai-1/workflows/semantic-release@main
-
-      - name: Pull Vercel project settings
-        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Use .env.preview for build
-        run: cp .env.preview .env  # Use .env.preview for preview deployment
-
-      - name: Run Vercel build
-        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}  # Build for preview environment
-
-      - name: Deploy to Vercel Preview
+      - name: Pull Vercel environment variables
         run: |
-          # Deploy to Vercel for preview with the correct environment variables
+          npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Sync .env.preview to Vercel
+        run: |
+          # Push preview environment variables to Vercel
+          npx vercel env add .env.preview --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project
+        run: |
+          npx vercel build --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Preview
+        run: |
           npx vercel deploy \
             --prebuilt \
+            --environment=preview \
             --token ${{ secrets.VERCEL_TOKEN }} \
             --yes \
-            --force \
-            --env VERCEL_ENV=preview  # Ensure that the Vercel environment is set to preview
-          
-      - name: Send Slack success notification
-        if: ${{ success() }}
+            --force
+
+      - name: Slack success notification
+        if: success()
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}

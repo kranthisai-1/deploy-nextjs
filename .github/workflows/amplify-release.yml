@@ -33,15 +33,18 @@ jobs:
       - name: Pull Vercel project settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Use .env.staging for build
+        run: cp .env.staging .env
+
       - name: Run Vercel build
         run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Load .env.staging and deploy to Vercel (Staging)
         run: |
-          # Load environment variables from .env.staging
-          set -o allexport
-          source .env.staging
-          set +o allexport
+          # # Load environment variables from .env.staging
+          # set -o allexport
+          # source .env.staging
+          # set +o allexport
 
           # Deploy to Vercel with the loaded env variables
           npx vercel deploy \

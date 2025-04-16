@@ -37,6 +37,9 @@ jobs:
           # 3. Add environment marker
           echo "VERCEL_ENV=preview" >> .env.local
 
+      - name: Pull Project Settings
+        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
+
       - name: Build with Preview Variables
         run: |
           npx vercel build --token ${{ secrets.VERCEL_TOKEN }}

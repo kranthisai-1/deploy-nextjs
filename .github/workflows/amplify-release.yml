@@ -1,22 +1,16 @@
-name: Create Release and Deploy to Preview
+name: Preview Deployment
 
 on:
   push:
-    branches:
-      - main  # or use a different branch if preview builds are triggered elsewhere
-
-permissions:
-  id-token: write
-  contents: read
+    branches: [main]
 
 jobs:
-  release_and_deploy:
+  deploy-preview:
     runs-on: ubuntu-latest
     environment: preview
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -28,28 +22,40 @@ jobs:
 
       - name: Link Vercel project
         run: |
-          npx vercel link \
-           --token ${{ secrets.VERCEL_TOKEN }} \
-           --yes \
-           --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
-           --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
+          npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
+            --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
+            --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
 
-      - name: Pull Preview Environment Variables
+      - name: Prepare Preview Environment
         run: |
-          npx vercel env pull .env.preview --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+          # 1. Backup existing .env.local
+          [ -f .env.local ] && cp .env.local .env.local.bak || true
+          
+          # 2. Create temporary .env.local from .env.preview
+          cp .env.preview .env.local
+          
+          # 3. Add environment marker
+          echo "VERCEL_ENV=preview" >> .env.local
 
-      - name: Pull Preview Environment Variables
+      - name: Build with Preview Variables
         run: |
-          npx vercel env pull .env.preview \
-           --environment=preview \
-           --token ${{ secrets.VERCEL_TOKEN }} \
-           --yes 
+          npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build and deploy
+      - name: Deploy Preview
         run: |
-          npx vercel deploy \
-            --prebuilt \
-            --token ${{ secrets.VERCEL_TOKEN }} \
-            --yes \
-            --force \
-            --env VERCEL_ENV=preview
+          npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
+            --target=preview --yes --force
+
+      - name: Cleanup Environment Files
+        if: always()
+        run: |
+          # Remove temporary .env.local
+          rm -f .env.local
+          # Restore original if it existed
+          [ -f .env.local.bak ] && mv .env.local.bak .env.local || true
+
+      - name: Verify Deployment
+        run: |
+          echo "Preview deployment complete"
+          echo "Environment variables used:"
+          grep -v '^#' .env.preview

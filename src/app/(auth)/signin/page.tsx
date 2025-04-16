@@ -48,7 +48,7 @@ export default function Signin() {
         <Spinner />
       ) : (
         <div className="bg-white shadow-lg rounded-lg p-8 w-[550px] h-[430px] mt-[-350px]">
-          <div>bjcjnh</div>
+          <div>tryinh</div>
           <div className="logo mt-3 ml-[30%]"></div>
           <div className="flex justify-center mt-[140px] pl-2">
             <GoogleLogin

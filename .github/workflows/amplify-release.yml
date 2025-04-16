@@ -1,4 +1,4 @@
-name: Create Release and Deploy to Staging
+name: Create Release and Deploy to Preview
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 jobs:
   release_and_deploy:
     runs-on: ubuntu-latest
-    environment: staging
+    environment: preview  # This refers to the preview environment in Vercel
 
     steps:
       - name: Checkout repo
@@ -33,33 +33,28 @@ jobs:
       - name: Pull Vercel project settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Use .env.staging for build
-        run: cp .env.staging .env
+      - name: Use .env.preview for build
+        run: cp .env.preview .env  # Use .env.preview for preview deployment
 
       - name: Run Vercel build
-        run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}  # Build for preview environment
 
-      - name: Load .env.staging and deploy to Vercel (Staging)
+      - name: Deploy to Vercel Preview
         run: |
-          # # Load environment variables from .env.staging
-          # set -o allexport
-          # source .env.staging
-          # set +o allexport
-
-          # Deploy to Vercel with the loaded env variables
+          # Deploy to Vercel for preview with the correct environment variables
           npx vercel deploy \
             --prebuilt \
             --token ${{ secrets.VERCEL_TOKEN }} \
-            --prod \
             --yes \
-            --force
+            --force \
+            --env VERCEL_ENV=preview  # Ensure that the Vercel environment is set to preview
           
       - name: Send Slack success notification
-        if: ${{ success() && steps.release.outputs.version != '' }}
+        if: ${{ success() }}
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "✅ Staging Deployment Complete"
-          message: "Version `v${{ steps.release.outputs.version }}` was deployed to *staging*."
+          title: "✅ Preview Deployment Complete"
+          message: "A new preview version was deployed."
           message_type: "success"

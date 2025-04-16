@@ -17,8 +17,9 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Create release version
+        id: release
+        uses: kranthisai-1/workflows/semantic-release@main
 
       - name: Link Vercel project
         run: |
@@ -28,14 +29,8 @@ jobs:
 
       - name: Prepare Preview Environment
         run: |
-          # 1. Backup existing .env.local
           [ -f .env.local ] && cp .env.local .env.local.bak || true
-          
-          # 2. Create temporary .env.local from .env.preview
           cp .env.preview .env.local
-          
-          # 3. Add environment marker
-          echo "VERCEL_ENV=preview" >> .env.local
 
       - name: Pull Project Settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
@@ -52,13 +47,15 @@ jobs:
       - name: Cleanup Environment Files
         if: always()
         run: |
-          # Remove temporary .env.local
           rm -f .env.local
-          # Restore original if it existed
           [ -f .env.local.bak ] && mv .env.local.bak .env.local || true
 
-      - name: Verify Deployment
-        run: |
-          echo "Preview deployment complete"
-          echo "Environment variables used:"
-          grep -v '^#' .env.preview
+      - name: Send Slack success notification
+        if: ${{ success() && steps.release.outputs.version != '' }}
+        uses: kranthisai-1/workflows/slack-alert@main
+        with:
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          title: "✅ Staging Deployment Complete"
+          message: "Version `v${{ steps.release.outputs.version }}` was deployed to *staging*."
+          message_type: "success"

@@ -57,7 +57,6 @@ jobs:
 
       - name: Prepare Environment Files
         run: |
-          # Copy the correct environment file based on the selected environment
           if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
             cp .env.production .env.local
           else
@@ -74,7 +73,6 @@ jobs:
 
       - name: Build the Project
         run: |
-          # Only use prebuilt flag for the same environment
           if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
             npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target production
           else

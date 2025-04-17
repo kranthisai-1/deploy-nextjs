@@ -91,7 +91,7 @@ jobs:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
           title: "Deployment Complete"
-          message: "Version `${{ steps.validate.outputs.version_tag }}` was successfully deployed to `${{ github.event.inputs.deployment_environment }}."
+          message: "Version `${{ steps.validate.outputs.version_tag }}` was successfully deployed to `${{ github.event.inputs.deployment_environment }}`."
           message_type: "success"
 
       - name: Notify Slack - Deployment Failure

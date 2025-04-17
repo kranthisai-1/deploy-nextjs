@@ -54,7 +54,7 @@ jobs:
       - name: Pull Project Settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
 
-      - name: Build with Preview Variables
+      - name: Build
         run: |
           npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 

@@ -67,7 +67,7 @@ jobs:
         run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Upload .vercel/output as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vercel-output
           path: .vercel/output

@@ -43,12 +43,17 @@ jobs:
           message: "Pushed to `main`, but release version could not be created."
           message_type: "danger"
 
-  deploy:
+  build:
     runs-on: ubuntu-latest
     needs: release
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
       - name: Prepare Environment
         run: cp .env.staging .env.local
@@ -59,9 +64,32 @@ jobs:
       - name: Build with Vercel
         run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Archive .vercel/output
+        run: tar -czf vercel-output.tgz .vercel/output
+
+      - name: Upload Build Artifact (tgz)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vercel-build
+          path: vercel-output.tgz
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vercel-build
+          path: .
+
+      - name: Extract Build Archive
+        run: tar -xzf vercel-output.tgz
+
       - name: Deploy to Vercel (Prebuilt)
         run: |
-          npx vercel@latest deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
+          npx vercel deploy --prebuilt --archive=tgz \
+            --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force
 
       - name: Slack Notification - Deploy Success

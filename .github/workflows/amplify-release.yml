@@ -37,11 +37,11 @@ jobs:
           message: "New version `v${{ steps.release.outputs.version }}` has been released."
           message_type: "success"
 
-      - name: Link Vercel project
-        run: |
-          npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
-            --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
-            --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
+      # - name: Link Vercel project
+      #   run: |
+      #     npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
+      #       --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
+      #       --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
 
       - name: Prepare Environment
         run: |

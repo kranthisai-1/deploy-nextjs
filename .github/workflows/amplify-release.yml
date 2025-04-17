@@ -61,7 +61,7 @@ jobs:
 
       - name: Deploy to Vercel (Prebuilt)
         run: |
-          npx vercel@latest deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
+          npx vercel@latest deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force
 
       - name: Slack Notification - Deploy Success

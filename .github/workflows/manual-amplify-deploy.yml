@@ -35,6 +35,11 @@ jobs:
           fi
           echo "version_tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Checkout the specified version tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.validate.outputs.version_tag }}
+
       - name: Notify Slack - Deployment Started
         uses: kranthisai-1/workflows/slack-alert@main
         with:
@@ -44,130 +49,49 @@ jobs:
           message: "Deploying `${{ steps.validate.outputs.version_tag }}` to `${{ github.event.inputs.deployment_environment }}` now!"
           message_type: "info"
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::270290807521:role/GitHubActionsAmplifyDeployRole
-          aws-region: us-east-1
-          audience: sts.amazonaws.com
-
-      - name: Checkout target branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          show-progress: false
-
-      - name: Create .env.deploy
+      - name: Link Vercel project
         run: |
-          echo "VERSION_TAG=${{ steps.validate.outputs.version_tag }}" > .env.deploy
-          echo "DEPLOYMENT_MESSAGE=\"${{ github.event.inputs.deployment_message }}\"" >> .env.deploy
+          npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
+            --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
+            --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
 
-      - name: Commit and push .env.deploy 
+      - name: Prepare Environment Files
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add .env.deploy
-          git commit --allow-empty -m "chore: update .env.deploy for ${{ steps.validate.outputs.version_tag }}"
-          git push origin main
-
-      - name: Set webhook URL
-        id: webhook
-        run: |
-          if [ "${{ github.event.inputs.deployment_environment }}" = "staging" ]; then
-            echo "url=https://webhooks.amplify.us-east-1.amazonaws.com/prod/webhooks?id=491b16b6-4c4b-4690-ba80-3e4dcf40a4d4&token=HoP06RMo7z7VPwCznlDYrfSHdqBcPTCnMWgEybr9A" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.deployment_environment }}" = "production" ]; then
-            echo "url=https://webhooks.amplify.us-east-1.amazonaws.com/prod/webhooks?id=da0ac255-2976-48ec-a99b-be6397caf298&token=GD0zBA1bAAFOlD87jT3KMJik8ylM0J5Nsex3OUNIOg" >> $GITHUB_OUTPUT
+          # Copy the correct environment file based on the selected environment
+          if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
+            cp .env.production .env.local
           else
-            echo "::error::Invalid environment"
-            exit 1
+            cp .env.preview .env.local
           fi
 
-      - name: Trigger Amplify deployment
+      - name: Pull Project Settings
+        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=${{ github.event.inputs.deployment_environment }}
+
+      - name: Build the Project
         run: |
-          curl -X POST "${{ steps.webhook.outputs.url }}"
+          npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Poll Amplify deployment status
-        id: amplify_poll
-        env:
-          AWS_REGION: us-east-1
-          APP_ID: d1uwoew2a9382l
+      - name: Deploy to Vercel
         run: |
-          if [ "${{ github.event.inputs.deployment_environment }}" = "production" ]; then
-            BRANCH_NAME="main"
-          else
-            BRANCH_NAME="${{ github.event.inputs.deployment_environment }}"
-          fi
+          npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
+            --target=${{ github.event.inputs.deployment_environment }} --yes --force
 
-          echo "Polling Amplify for deployment status..."
-          sleep 10
-
-          job_id=$(aws amplify list-jobs \
-            --app-id "$APP_ID" \
-            --branch-name "$BRANCH_NAME" \
-            --region "$AWS_REGION" \
-            --output json | jq -r '.jobSummaries[0].jobId')
-
-          echo "Latest job ID: $job_id"
-
-          while true; do
-            job_data=$(aws amplify get-job \
-              --app-id "$APP_ID" \
-              --branch-name "$BRANCH_NAME" \
-              --job-id "$job_id" \
-              --region "$AWS_REGION" \
-              --output json)
-
-            status=$(echo "$job_data" | jq -r '.job.summary.status')
-            echo "Deployment status: $status"
-
-            if [[ "$status" == "SUCCEED" ]]; then
-              echo "Amplify deployment succeeded. Step logs:"
-              steps=$(echo "$job_data" | jq -c '.job.steps[] | select(.logUrl != null)')
-              while IFS= read -r step; do
-                name=$(echo "$step" | jq -r '.stepName')
-                log_url=$(echo "$step" | jq -r '.logUrl')
-                echo "--- $name ---"
-                curl -s "$log_url"
-                echo ""
-              done <<< "$steps"
-              echo "status=success" >> $GITHUB_OUTPUT
-              exit 0
-
-            elif [[ "$status" == "FAILED" || "$status" == "CANCELLED" ]]; then
-              echo "::error::Amplify deployment failed with status: $status. Step logs:"
-              steps=$(echo "$job_data" | jq -c '.job.steps[] | select(.logUrl != null)')
-              while IFS= read -r step; do
-                name=$(echo "$step" | jq -r '.stepName')
-                log_url=$(echo "$step" | jq -r '.logUrl')
-                echo "--- $name ---"
-                curl -s "$log_url"
-                echo ""
-              done <<< "$steps"
-              echo "status=failure" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-      - name: Notify Slack - Deployment Result
-        if: always()
+      - name: Notify Slack - Deployment Success
+        if: ${{ success() }}
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: ${{ steps.amplify_poll.outputs.status == 'success' && 'Deployment successful' || (steps.amplify_poll.outputs.status == 'failure' && 'Deployment failed') }}
-          message: "${{ steps.amplify_poll.outputs.status == 'success' && format('Successfully deployed `{0}` to `{1}` and is ready to use!', steps.validate.outputs.version_tag, github.event.inputs.deployment_environment) || (steps.amplify_poll.outputs.status == 'failure' && format('Failed to deploy `{0}` to `{1}`!', steps.validate.outputs.version_tag, github.event.inputs.deployment_environment) || format('Deployment timed out for `{0}` to `{1}`.', steps.validate.outputs.version_tag, github.event.inputs.deployment_environment)) }}"
-          message_type: "${{ steps.amplify_poll.outputs.status == 'success' && 'success' || 'error' }}"
+          title: "Deployment Complete"
+          message: "Version `${{ steps.validate.outputs.version_tag }}` was successfully deployed to `${{ github.event.inputs.deployment_environment }}."
+          message_type: "success"
 
-      - name: Cleanup .env.deploy
-        if: always()
-        run: |
-          echo "Cleaning up .env.deploy file..."
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git rm -f .env.deploy || true
-          git commit --allow-empty -m "chore: cleanup .env.deploy after deployment"
-          git push origin main
-
+      - name: Notify Slack - Deployment Failure
+        if: ${{ failure() }}
+        uses: kranthisai-1/workflows/slack-alert@main
+        with:
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          title: "Deployment Failed"
+          message: "Deployment of version `${{ steps.validate.outputs.version_tag }}` to `${{ github.event.inputs.deployment_environment }}` failed."
+          message_type: "danger"

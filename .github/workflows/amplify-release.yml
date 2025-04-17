@@ -23,9 +23,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Create release version
         id: release
         uses: kranthisai-1/workflows/semantic-release@main
@@ -48,7 +45,6 @@ jobs:
 
       - name: Prepare Preview Environment
         run: |
-          # [ -f .env.local ] && cp .env.local .env.local.bak || true
           cp .env.preview .env.local
 
       - name: Pull Project Settings
@@ -62,12 +58,6 @@ jobs:
         run: |
           npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force
-
-      # - name: Cleanup Environment Files
-      #   if: always()
-      #   run: |
-      #     rm -f .env.local
-      #     [ -f .env.local.bak ] && mv .env.local.bak .env.local || true
 
       - name: Send Slack success notification
         if: ${{ success() && steps.release.outputs.version != '' }}

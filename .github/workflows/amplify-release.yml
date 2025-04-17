@@ -65,7 +65,7 @@ jobs:
         run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Archive .vercel/output
-        run: tar -czf vercel-output.tgz .vercel/output
+        run: tar -czf vercel-output.tgz .vercel
 
       - name: Upload Build Artifact (tgz)
         uses: actions/upload-artifact@v4

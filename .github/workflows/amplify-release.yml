@@ -43,7 +43,7 @@ jobs:
           message: "Pushed to `main`, but release version could not be created."
           message_type: "danger"
 
-  build:
+  build & deploy:
     runs-on: ubuntu-latest
     needs: release
 
@@ -63,29 +63,6 @@ jobs:
 
       - name: Build with Vercel
         run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Upload .vercel/output as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vercel-output
-          path: .vercel/output/**/*
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [release, build]
-
-    steps:
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vercel-output
-          path: .vercel/output
-          pattern: '*'
-          merge-multiple: true
-      - name: Validate Function Configs
-        run: |
-          find .vercel/output/functions -name ".vc-config.json" | xargs ls -l
-          test -f .vercel/output/functions/[userType]/refunds/[id].func/.vc-config.json
 
       - name: Deploy to Vercel (Prebuilt)
         run: |

@@ -61,7 +61,7 @@ jobs:
           if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
             cp .env.production .env.local
           else
-            cp .env.staging .env.local
+            cp .env.preview .env.local
           fi
 
       - name: Pull Project Settings

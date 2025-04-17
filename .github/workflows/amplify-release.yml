@@ -1,4 +1,4 @@
-name: Preview Deployment
+name: Tag-based Staging Deployment
 
 on:
   push:
@@ -10,25 +10,23 @@ permissions:
   packages: write
   issues: write
   pull-requests: write
+  id-token: write
 
 jobs:
-  deploy-preview:
+  release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
 
       - name: Create release version
         id: release
         uses: kranthisai-1/workflows/semantic-release@main
 
-      - name: Release success alert
-        if: ${{ steps.release.outputs.version != '' && github.ref_name == github.event.repository.default_branch }}
+      - name: Slack Notification - Release Success
+        if: ${{ steps.release.outputs.version != '' }}
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
@@ -37,34 +35,65 @@ jobs:
           message: "New version `v${{ steps.release.outputs.version }}` has been released."
           message_type: "success"
 
-      # - name: Link Vercel project
-      #   run: |
-      #     npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
-      #       --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
-      #       --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
+      - name: Slack Notification - Release Failed
+        if: ${{ steps.release.outputs.version == '' }}
+        uses: kranthisai-1/workflows/slack-alert@main
+        with:
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          title: "Release failed"
+          message: "Pushed to `main`, but release version could not be created."
+          message_type: "danger"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
       - name: Prepare Environment
-        run: |
-          cp .env.staging .env.local
+        run: cp .env.staging .env.local
 
       - name: Pull Project Settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
 
-      - name: Build
-        run: |
-          npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Build with Vercel
+        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy
+      - name: Upload .vercel/output as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: vercel-output
+          path: .vercel/output
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: vercel-output
+          path: .vercel/output
+
+      - name: Deploy to Vercel (Prebuilt)
         run: |
           npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force
 
-      - name: Send Slack success notification
-        if: ${{ success() && steps.release.outputs.version != '' }}
+      - name: Slack Notification - Deploy Success
+        if: ${{ success() }}
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
           title: "Staging Deployment Complete"
-          message: "Version `v${{ steps.release.outputs.version }}` was deployed to *staging*."
+          message: "Latest build has been deployed to *staging*."
           message_type: "success"

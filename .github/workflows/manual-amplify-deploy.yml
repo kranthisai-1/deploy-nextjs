@@ -74,7 +74,12 @@ jobs:
 
       - name: Build the Project
         run: |
-          npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
+          # Only use prebuilt flag for the same environment
+          if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
+            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target production
+          else
+            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target preview
+          fi
 
       - name: Deploy to Vercel
         run: |

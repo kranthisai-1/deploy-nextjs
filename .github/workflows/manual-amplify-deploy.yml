@@ -49,12 +49,6 @@ jobs:
           message: "Deploying `${{ steps.validate.outputs.version_tag }}` to `${{ github.event.inputs.deployment_environment }}` now!"
           message_type: "info"
 
-      - name: Link Vercel project
-        run: |
-          npx vercel link --yes --token ${{ secrets.VERCEL_TOKEN }} \
-            --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
-            --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
-
       - name: Prepare Environment Files
         run: |
           if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then

@@ -61,11 +61,16 @@ jobs:
           if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
             cp .env.production .env.local
           else
-            cp .env.preview .env.local
+            cp .env.staging .env.local
           fi
 
       - name: Pull Project Settings
-        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=${{ github.event.inputs.deployment_environment }}
+        run: |
+          if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
+            npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
+          else
+            npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=production
+          fi
 
       - name: Build the Project
         run: |
@@ -73,8 +78,11 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
-            --target=${{ github.event.inputs.deployment_environment }} --yes --force
+          if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
+            npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} --target=preview --yes --force
+          else
+            npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} --target=production --yes --force
+          fi
 
       - name: Notify Slack - Deployment Success
         if: ${{ success() }}

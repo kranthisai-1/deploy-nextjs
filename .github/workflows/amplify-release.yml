@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vercel-output
-          path: .vercel/output/**
+          path: .vercel/output/**/*
 
   deploy:
     runs-on: ubuntu-latest
@@ -80,9 +80,12 @@ jobs:
         with:
           name: vercel-output
           path: .vercel/output
-
-      - name: List the contents of the downloaded artifact
-        run: ls -R .vercel/output
+          pattern: '*'
+          merge-multiple: true
+      - name: Validate Function Configs
+        run: |
+          find .vercel/output/functions -name ".vc-config.json" | xargs ls -l
+          test -f .vercel/output/functions/[userType]/refunds/[id].func/.vc-config.json
 
       - name: Deploy to Vercel (Prebuilt)
         run: |

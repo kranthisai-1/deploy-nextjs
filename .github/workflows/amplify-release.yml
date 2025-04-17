@@ -43,9 +43,9 @@ jobs:
             --project prj_BxoaUQaP1tgrZr5WmjZiwvHc2K91 \
             --scope team_hbtqJO0t3tEq8rpWJdcoYkDZ
 
-      - name: Prepare Preview Environment
+      - name: Prepare Environment
         run: |
-          cp .env.preview .env.local
+          cp .env.staging .env.local
 
       - name: Pull Project Settings
         run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
@@ -54,7 +54,7 @@ jobs:
         run: |
           npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy Preview
+      - name: Deploy
         run: |
           npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force

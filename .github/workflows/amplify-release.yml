@@ -8,8 +8,6 @@ on:
 permissions:
   contents: write
   packages: write
-  issues: write
-  pull-requests: write
   id-token: write
 
 jobs:
@@ -66,18 +64,15 @@ jobs:
       - name: Build with Vercel
         run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: List the contents of build output
-        run: ls -R .vercel/output
-
       - name: Upload .vercel/output as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vercel-output
-          path: .vercel/output
+          path: .vercel/output/**
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [release, build]
 
     steps:
       - name: Download Artifact
@@ -91,7 +86,7 @@ jobs:
 
       - name: Deploy to Vercel (Prebuilt)
         run: |
-          npx vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
+          npx vercel@latest deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} \
             --target=preview --yes --force
 
       - name: Slack Notification - Deploy Success

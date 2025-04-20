@@ -1,119 +1,85 @@
-name: Tag-based Staging Deployment
+name: Feature branch integration & deployment
+
+env:
+  NODE_VERSION: 20
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  contents: write
-  id-token: write
-  packages: write
-
 jobs:
-  release:
+  Build:
+    name: Build for Vercel
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.release.outputs.version }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create release version
-        id: release
-        uses: kranthisai-1/workflows/semantic-release@main
-
-      - name: Slack Notification - Release Success
-        if: ${{ steps.release.outputs.version != '' }}
-        uses: kranthisai-1/workflows/slack-alert@main
+      # Set node version
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "Release successful"
-          message: "New version `v${{ steps.release.outputs.version }}` has been released."
-          message_type: "success"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
 
-      - name: Slack Notification - Release Failed
-        if: ${{ steps.release.outputs.version == '' }}
-        uses: kranthisai-1/workflows/slack-alert@main
-        with:
-          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "Release failed"
-          message: "Pushed to `main`, but release version could not be created."
-          message_type: "danger"
-
-  build:
-    runs-on: ubuntu-latest
-    needs: release
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Prepare Environment
-        run: cp .env.staging .env.local
-
+      # Install Vercel CLI
       - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+        run: yarn global add vercel@canary
 
-      - name: Pull Vercel Project Settings
-        run: vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }}
+      # Pull Vercel Environment Information
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Project with Vercel
-        run: vercel build --token ${{ secrets.VERCEL_TOKEN }}
+      # Build
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Archive Build Output
-        run: tar -czf vercel-output.tgz .vercel
-
-      - name: Upload Build Artifact
+      # Upload build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vercel-build
-          path: vercel-output.tgz
+          name: build
+          path: .vercel/output
 
-  deploy:
+  Deploy:
+    needs: [Build]
+    name: Deploy to preview environment
     runs-on: ubuntu-latest
-    needs: build
-
+    environment:
+      name: preview
+      url: ${{ steps.seturl.outputs.url }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      # Set node version
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Download Build Artifact
+      # Download build artifcact
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: vercel-build
-          path: .
+          name: build
+          path: .vercel/output/
 
-      - name: Extract Build Archive
-        run: tar -xzf vercel-output.tgz
+      # Install Vercel CLI
+      - name: Install Vercel CLI
+        run: yarn global add vercel@canary
 
-      - name: Deploy Prebuilt Project
-        run: |
-          vercel deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
-            --target=preview --yes --force
+      # Deploy
+      - name: Deploy Project Artifacts to Vercel
+        shell: bash
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} | tee deploy.log
 
-      - name: Slack Notification - Deploy Success
-        if: ${{ success() }}
-        uses: kranthisai-1/workflows/slack-alert@main
-        with:
-          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack_token: ${{ secrets.SLACK_TOKEN }}
-          title: "Staging Deployment Complete"
-          message: "Latest build has been deployed to *staging*."
-          message_type: "success"
+      # Set preview url
+      - id: seturl
+        name: Set preview url
+        run: echo "url=$(tail -1 deploy.log)">> $GITHUB_OUTPUT
+
+      - name: Output preview url
+        run: echo "${{ steps.seturl.outputs.url }}"

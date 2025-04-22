@@ -85,11 +85,13 @@ jobs:
           else
             DEPLOY_URL=$(npx vercel deploy --prebuilt --target=preview --token ${{ secrets.VERCEL_TOKEN }} --yes --force | tail -1)
           fi
-          echo "Deploy URL: $DEPLOY_URL"  # Just for debugging
+          echo "Deploy URL: $DEPLOY_URL"
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
       - name: Alias the Preview URL (Testing)
         if: ${{ github.event.inputs.deployment_environment != 'production' }}
         run: |
+          DEPLOY_URL="${{ steps.vercel_deploy.outputs.deploy_url }}"
           echo "Alias Deployment to: $DEPLOY_URL"
           if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
             npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}

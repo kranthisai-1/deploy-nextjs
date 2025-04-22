@@ -93,9 +93,9 @@ jobs:
           echo "Deploy URL: $DEPLOY_URL"  # Just for debugging
           # Simulate aliasing by setting a temporary name (e.g., 'staging.vercel.app')
           if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
-            npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }} --yes
+            npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
           else
-            npx vercel alias set "$DEPLOY_URL" "sandbox.vercel.app" --token ${{ secrets.VERCEL_TOKEN }} --yes
+            npx vercel alias set "$DEPLOY_URL" "sandbox.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
           fi
 
       - name: Notify Slack - Deployment Success with URL

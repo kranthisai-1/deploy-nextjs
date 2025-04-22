@@ -99,18 +99,15 @@ jobs:
             npx vercel alias set "$DEPLOY_URL" "sandbox.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
           fi
 
-      - name: Notify Slack - Deployment Success with URL
+      - name: Send Slack Notification
         if: ${{ success() }}
-        run: |
-          DEPLOY_URL=$(echo "${{ steps.vercel_deploy.outputs.stdout_lines }}" | tail -1)
-          echo "Deployment completed successfully. Preview URL: $DEPLOY_URL"
-          uses: kranthisai-1/workflows/slack-alert@main
-          with:
-            channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-            slack_token: ${{ secrets.SLACK_TOKEN }}
-            title: "Deployment Complete"
-            message: "Version `${{ steps.validate.outputs.version_tag }}` was successfully deployed to `${{ github.event.inputs.deployment_environment }}`."
-            message_type: "success"
+        uses: kranthisai-1/workflows/slack-alert@main
+        with:
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          title: "Deployment Complete"
+          message: "Version `v1.7.8` was successfully deployed to `sandbox`. View it at ${{ steps.vercel_deploy.outputs.deploy_url }}"
+          message_type: "success"
 
       - name: Notify Slack - Deployment Failure
         if: ${{ failure() }}

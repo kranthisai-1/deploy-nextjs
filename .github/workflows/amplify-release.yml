@@ -71,13 +71,8 @@ jobs:
       - name: Alias to Temporary URL (Testing)
         run: |
           DEPLOY_URL=${{ steps.vercel_deploy.outputs.url }}
-          echo "Deploy URL: $DEPLOY_URL"  # For debugging
-          # Test aliasing using a temporary URL for testing purposes
-          if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
-            npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }} --yes
-          else
-            npx vercel alias set "$DEPLOY_URL" "sandbox.vercel.app" --token ${{ secrets.VERCEL_TOKEN }} --yes
-          fi
+          echo "Deploy URL: $DEPLOY_URL"
+          npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }} --yes
 
       - name: Slack Notification - Deploy Success
         if: ${{ success() }}

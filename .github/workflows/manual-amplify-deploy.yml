@@ -94,9 +94,9 @@ jobs:
           DEPLOY_URL="${{ steps.vercel_deploy.outputs.deploy_url }}"
           echo "Alias Deployment to: $DEPLOY_URL"
           if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
-            npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
+            npx vercel alias set "$DEPLOY_URL" "admin-staging.todaypay.tech/" --token ${{ secrets.VERCEL_TOKEN }}
           else
-            npx vercel alias set "$DEPLOY_URL" "sandbox.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
+            npx vercel alias set "$DEPLOY_URL" "admin-sandbox.todaypay.tech/" --token ${{ secrets.VERCEL_TOKEN }}
           fi
 
       - name: Send Slack Notification

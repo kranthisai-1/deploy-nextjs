@@ -72,7 +72,7 @@ jobs:
         run: |
           DEPLOY_URL=${{ steps.vercel_deploy.outputs.url }}
           echo "Deploy URL: $DEPLOY_URL"
-          npx vercel alias set "$DEPLOY_URL" "staging.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
+          npx vercel alias set "$DEPLOY_URL" "staging-unique-id.vercel.app" --token ${{ secrets.VERCEL_TOKEN }}
 
       - name: Slack Notification - Deploy Success
         if: ${{ success() }}

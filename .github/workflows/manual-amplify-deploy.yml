@@ -64,49 +64,44 @@ jobs:
 
       - name: Pull Environment Variables
         run: |
-          case "${{ github.event.inputs.deployment_environment }}" in
-            production) npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=production ;;
-            *)          npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview    ;;
-          esac
+          ENV_TARGET="${{ github.event.inputs.deployment_environment }}"
+          if [[ "$ENV_TARGET" == "sandbox" ]]; then
+            ENV_TARGET="preview"
+          fi
+          npx vercel pull --yes \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --environment=$ENV_TARGET
 
       - name: Build the Project
         run: |
-          if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
-            npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
-          else
-            npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
+          TARGET="${{ github.event.inputs.deployment_environment }}"
+          if [[ "$TARGET" == "sandbox" ]]; then
+            TARGET="preview"
           fi
+          npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target=$TARGET
 
       - name: Deploy to Vercel
         id: vercel_deploy
         run: |
-          if [[ "${{ github.event.inputs.deployment_environment }}" == "production" ]]; then
-            DEPLOY_URL=$(npx vercel deploy --prebuilt --target=production --token ${{ secrets.VERCEL_TOKEN }} --yes --force | tail -1)
-          else
-            DEPLOY_URL=$(npx vercel deploy --prebuilt --target=preview --token ${{ secrets.VERCEL_TOKEN }} --yes --force | tail -1)
+          TARGET="${{ github.event.inputs.deployment_environment }}"
+          if [[ "$TARGET" == "sandbox" ]]; then
+            TARGET="preview"
           fi
+          DEPLOY_URL=$(npx vercel deploy --prebuilt \
+            --target=$TARGET \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --yes --force | tail -1)
           echo "Deploy URL: $DEPLOY_URL"
           echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
-      - name: Alias the Preview URL (Testing)
-        if: ${{ github.event.inputs.deployment_environment != 'production' }}
-        run: |
-          DEPLOY_URL="${{ steps.vercel_deploy.outputs.deploy_url }}"
-          echo "Alias Deployment to: $DEPLOY_URL"
-          if [[ "${{ github.event.inputs.deployment_environment }}" == "staging" ]]; then
-            npx vercel alias set "$DEPLOY_URL" "admin-staging.todaypay.tech" --token ${{ secrets.VERCEL_TOKEN }}
-          else
-            npx vercel alias set "$DEPLOY_URL" "admin-sandbox.todaypay.tech" --token ${{ secrets.VERCEL_TOKEN }}
-          fi
-
-      - name: Send Slack Notification
+      - name: Send Slack Notification - Success
         if: ${{ success() }}
         uses: kranthisai-1/workflows/slack-alert@main
         with:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
           title: "Deployment Complete"
-          message: "Version `v1.7.8` was successfully deployed to `sandbox`. View it at ${{ steps.vercel_deploy.outputs.deploy_url }}"
+          message: "Version `${{ steps.validate.outputs.version_tag }}` was successfully deployed to `${{ github.event.inputs.deployment_environment }}`. View it at ${{ steps.vercel_deploy.outputs.deploy_url }}"
           message_type: "success"
 
       - name: Notify Slack - Deployment Failure

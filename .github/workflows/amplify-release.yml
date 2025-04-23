@@ -55,15 +55,15 @@ jobs:
         run: cp .env.staging .env.local
 
       - name: Pull Project Settings
-        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=preview
+        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=staging
 
       - name: Build with Vercel
-        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target=staging
 
       - name: Deploy to Vercel
         run: |
           npx vercel@latest deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
-            --target=preview --yes --force
+            --target=staging --yes --force
 
       - name: Slack Notification - Deploy Success
         if: ${{ success() }}

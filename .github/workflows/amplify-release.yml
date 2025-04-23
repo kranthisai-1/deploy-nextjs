@@ -51,18 +51,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Prepare Environment
         run: cp .env.staging .env.local
 
       - name: Pull Project Settings
-        run: npx vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=staging
+        run: yarn vercel pull --yes --token ${{ secrets.VERCEL_TOKEN }} --environment=staging
 
       - name: Build with Vercel
-        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --target=staging
+        run: yarn vercel build --token ${{ secrets.VERCEL_TOKEN }} --target=staging
 
       - name: Deploy to Vercel
         run: |
-          npx vercel@latest deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
+          yarn vercel deploy --prebuilt --archive=tgz --token ${{ secrets.VERCEL_TOKEN }} \
             --target=staging --yes --force
 
       - name: Slack Notification - Deploy Success
@@ -82,5 +91,5 @@ jobs:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack_token: ${{ secrets.SLACK_TOKEN }}
           title: "Deployment failed"
-          message: "Failed to deploy `v${{ steps.release.outputs.version }}` to staging !"
+          message: "Failed to deploy `v${{ steps.release.outputs.version }}` to staging!"
           message_type: "error"
